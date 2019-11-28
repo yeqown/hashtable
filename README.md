@@ -5,15 +5,11 @@
 
 ### TODOs:
 
-[ ] 利用go:generate来生成指定Map<KeyTyp,ValueTyp>并生成方法集
-
-[ ] 利用murmur3来替换murmur3算法
-
-[x] 参照redis.dict实现链式hash表 http://zhangtielei.com/posts/blog-redis-dict.html
-
-[x] 能自动扩容，rehash
-
-[ ] 完成性能测试，对比golang内置Map
+    [ ] 利用go:generate来生成指定Map<KeyTyp,ValueTyp>并生成方法集
+    [ ] 利用murmur3来替换murmur3算法
+    [x] 参照redis.dict实现链式hash表 http://zhangtielei.com/posts/blog-redis-dict.html
+    [x] 能自动扩容，rehash
+    [ ] 完成性能测试，对比golang内置Map
 
 
 
