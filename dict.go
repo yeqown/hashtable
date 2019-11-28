@@ -13,6 +13,9 @@ type Map interface {
 
 	// Iter func to visit all data in
 	Iter(iter MapIterator)
+
+	// Len returns used size of Dict
+	Len() int
 }
 
 // MapIterator .
