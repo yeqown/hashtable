@@ -6,6 +6,9 @@
 package hashtable
 
 import (
+	"strings"
+	"unsafe"
+
 	"github.com/spaolacci/murmur3"
 )
 
@@ -99,6 +102,9 @@ func (d *LinkedDict) Get(key string) (v interface{}, ok bool) {
 	if !d.isRehashing() {
 		// true: not in rehashing, just return the value
 		return
+	} else if ok {
+		// true: in rehasing but has got in d.ht[0]
+		return v, ok
 	}
 
 	// check in ht[1]
@@ -227,7 +233,9 @@ func (d *LinkedDict) finishrehash() {
 }
 
 func (d *LinkedDict) hashkey(key string) uint64 {
-	return murmur3.Sum64([]byte(key))
+	x := (*[2]uintptr)(unsafe.Pointer(&key))
+	b := [3]uintptr{x[0], x[1], x[1]}
+	return murmur3.Sum64(*(*[]byte)(unsafe.Pointer(&b)))
 }
 
 func (d *LinkedDict) needRehash() bool {
@@ -264,6 +272,10 @@ func (ht *hashtable) init(size int) {
 	ht.sizemask = size - 1
 }
 
+func (ht *hashtable) keyCompare(key1, key2 string) bool {
+	return strings.Compare(key1, key2) == 0
+}
+
 func (ht *hashtable) insert(hashkey uint64, item *dictEntry) {
 	// println(ht.size, ht.used)
 	pos := hashkey % uint64(ht.size)
@@ -280,7 +292,7 @@ func (ht *hashtable) insert(hashkey uint64, item *dictEntry) {
 	}
 
 	for entry != nil {
-		if entry.key == item.key {
+		if ht.keyCompare(entry.key, item.key) {
 			// true: update value
 			entry.value = item.value
 			return
@@ -299,7 +311,7 @@ func (ht *hashtable) del(hashkey uint64, key string) {
 	var preEntry *dictEntry
 
 	for entry != nil {
-		if entry.key == key {
+		if ht.keyCompare(entry.key, key) {
 			// true: hit the key
 			if preEntry != nil {
 				preEntry.next = entry.next
@@ -320,7 +332,7 @@ func (ht *hashtable) lookup(hashkey uint64, key string) (v interface{}, ok bool)
 	pos := hashkey % uint64(ht.size)
 	entry := ht.table[pos]
 	for entry != nil {
-		if entry.key == key {
+		if ht.keyCompare(entry.key, key) {
 			v = entry.value
 			ok = true
 			return

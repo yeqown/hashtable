@@ -74,7 +74,7 @@ func Test_LinkedDict_SetGetDel(t *testing.T) {
 
 func Test_LinkedDict_Iter(t *testing.T) {
 	m := hashtable.NewLinkedDict()
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 100000; i++ {
 		m.Set(fmt.Sprintf("key_%d", i), i)
 	}
 
@@ -83,8 +83,8 @@ func Test_LinkedDict_Iter(t *testing.T) {
 		cache[key] = true
 	})
 
-	if size := len(cache); size != 1024 {
-		t.Errorf("invalid iter func, want=1024, got cache=%d, dictSize=%d", size, m.Len())
+	if size := len(cache); size != 100000 {
+		t.Errorf("invalid iter func, want=100000, got cache=%d, dictSize=%d", size, m.Len())
 		t.FailNow()
 	}
 }
@@ -125,15 +125,23 @@ func Benchmark_LinkedDict(b *testing.B) {
 		ok  	github.com/yeqown/hashtable	1.769s
 		Success: Benchmarks passed.
 	*/
+	var (
+		key string
+		v   interface{}
+		ok  bool
+	)
 	b.StopTimer()
 	m := hashtable.NewLinkedDict()
-	for i := 0; i < 1024; i++ {
-		m.Set(fmt.Sprintf("key_%d", i), i)
+	for i := 0; i < 100000; i++ {
+		key = fmt.Sprintf("key_%d", i)
+		m.Set(key, i)
 	}
+
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		pos := rand.Intn(1024)
-		if v, ok := m.Get(fmt.Sprintf("key_%d", pos)); !ok || v.(int) != pos {
+		pos := rand.Intn(100000)
+		key = fmt.Sprintf("key_%d", pos)
+		if v, ok = m.Get(key); !ok || v.(int) != pos {
 			b.Errorf("want got=true, v=%d, actual got=%v, v=%v", pos, ok, v)
 			b.FailNow()
 		}
