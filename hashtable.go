@@ -140,7 +140,7 @@ func (d *LinkedDict) Iter(iterFunc MapIterator) {
 	}
 }
 
-// Len .
+// Len get totoal used size of Dict
 func (d *LinkedDict) Len() int {
 	return d.ht[0].used + d.ht[1].used
 }

@@ -72,7 +72,25 @@ func Test_LinkedDict_SetGetDel(t *testing.T) {
 	}
 }
 
+func Test_LinkedDict_Iter(t *testing.T) {
+	m := hashtable.NewLinkedDict()
+	for i := 0; i < 1024; i++ {
+		m.Set(fmt.Sprintf("key_%d", i), i)
+	}
+
+	cache := make(map[string]bool)
+	m.Iter(func(key string, v interface{}) {
+		cache[key] = true
+	})
+
+	if size := len(cache); size != 1024 {
+		t.Errorf("invalid iter func, want=1024, got cache=%d, dictSize=%d", size, m.Len())
+		t.FailNow()
+	}
+}
+
 func Test_LinkedDict_Rehash(t *testing.T) {
+	// bydebug to test
 	m := hashtable.NewLinkedDict()
 	for i := 0; i < 1024; i++ {
 		m.Set(fmt.Sprintf("key_%d", i), i)
@@ -98,6 +116,15 @@ func Test_LinkedDict_Shrink(t *testing.T) {
 }
 
 func Benchmark_LinkedDict(b *testing.B) {
+	/*
+		goos: darwin
+		goarch: amd64
+		pkg: github.com/yeqown/hashtable
+		Benchmark_LinkedDict-4   	 4458631	       268 ns/op	      23 B/op	       2 allocs/op
+		PASS
+		ok  	github.com/yeqown/hashtable	1.769s
+		Success: Benchmarks passed.
+	*/
 	b.StopTimer()
 	m := hashtable.NewLinkedDict()
 	for i := 0; i < 1024; i++ {
@@ -107,6 +134,33 @@ func Benchmark_LinkedDict(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos := rand.Intn(1024)
 		if v, ok := m.Get(fmt.Sprintf("key_%d", pos)); !ok || v.(int) != pos {
+			b.Errorf("want got=true, v=%d, actual got=%v, v=%v", pos, ok, v)
+			b.FailNow()
+		}
+	}
+}
+
+func XBenchmark_goMap(b *testing.B) {
+	/*
+		goos: darwin
+		goarch: amd64
+		pkg: github.com/yeqown/hashtable
+		Benchmark_goMap-4   	 4861671	       230 ns/op	      15 B/op	       1 allocs/op
+		PASS
+		ok  	github.com/yeqown/hashtable	1.869s
+		Success: Benchmarks passed.
+	*/
+	b.StopTimer()
+	m := make(map[string]interface{})
+	for i := 0; i < 1024; i++ {
+		key := fmt.Sprintf("key_%d", i)
+		m[key] = i
+	}
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		pos := rand.Intn(1024)
+		if v, ok := m[fmt.Sprintf("key_%d", pos)]; !ok || v.(int) != pos {
 			b.Errorf("want got=true, v=%d, actual got=%v, v=%v", pos, ok, v)
 			b.FailNow()
 		}
