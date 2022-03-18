@@ -12,27 +12,27 @@ func main() {
 	var N = 1000
 	// 1K
 	testBuiltinMap(N)
-	testLinkedDict(N)
+	testMap(N)
 
 	// 10K
 	N = 10000
 	testBuiltinMap(N)
-	testLinkedDict(N)
+	testMap(N)
 
 	// 100K
 	N = 100000
 	testBuiltinMap(N)
-	testLinkedDict(N)
+	testMap(N)
 
 	// 1M
 	N = 1000000
 	testBuiltinMap(N)
-	testLinkedDict(N)
+	testMap(N)
 
 	// 10M
 	N = 10000000
 	testBuiltinMap(N)
-	testLinkedDict(N)
+	testMap(N)
 }
 
 func testBuiltinMap(N int) {
@@ -69,14 +69,14 @@ func testBuiltinMap(N int) {
 
 }
 
-func testLinkedDict(N int) {
+func testMap(N int) {
 	var (
 		builtCost int64
 		getCost   int64
 	)
 
 	var (
-		m   = hashtable.NewLinkedDict()
+		m   = hashtable.New[string, int]()
 		key string
 		v   interface{}
 		ok  bool
@@ -88,15 +88,15 @@ func testLinkedDict(N int) {
 		m.Set(key, i)
 	}
 	builtCost = time.Now().Sub(startSet).Milliseconds()
-	fmt.Printf("builtinLinkedDict_%d, cost: %d\n", N, builtCost)
+	fmt.Printf("builtinMap_%d, cost: %d\n", N, builtCost)
 
 	startGet := time.Now()
 	for i := 0; i < N; i++ {
 		pos := rand.Intn(N)
 		key = fmt.Sprintf("key_%d", pos)
-		v, ok = m.Get(key)
+		v, ok = m.Lookup(key)
 		_, _ = v, ok
 	}
 	getCost = time.Now().Sub(startGet).Milliseconds()
-	fmt.Printf("getLinkedDict_%d, cost: %d\n", N, getCost)
+	fmt.Printf("getMap_%d, cost: %d\n", N, getCost)
 }

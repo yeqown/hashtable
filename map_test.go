@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/spaolacci/murmur3"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/yeqown/hashtable"
 )
 
@@ -33,54 +35,47 @@ func Test_murmur3x64(t *testing.T) {
 	t.Log(v1)
 }
 
-func Test_LinkedDict_SetGetDel(t *testing.T) {
-	m := hashtable.NewLinkedDict()
+func Test_Map_SetGetDel(t *testing.T) {
+	m := hashtable.New[string, string]()
 
 	m.Set("author", "yeqown")
-	if v, ok := m.Get("author"); !ok || v.(string) != "yeqown" {
-		t.Errorf("want got=true, v=yeqown, actual got=%v, v=%v", ok, v)
-		t.FailNow()
-	}
+	v, ok := m.Lookup("author")
+	assert.True(t, ok)
+	assert.Equal(t, "yeqown", v)
 
 	m.Set("date", "20191128")
-	if v, ok := m.Get("date"); !ok || v.(string) != "20191128" {
-		t.Errorf("want got=true, v=20191128, actual got=%v, v=%v", ok, v)
-		t.FailNow()
-	}
+	v, ok = m.Lookup("date")
+	assert.True(t, ok)
+	assert.Equal(t, "20191128", v)
 
 	m.Set("date", "2019/11/28 03:50PM")
-	if v, ok := m.Get("date"); !ok || v.(string) != "2019/11/28 03:50PM" {
-		t.Errorf("want got=true, v='2019/11/28 03:50PM', actual got=%v, v=%v", ok, v)
-		t.FailNow()
-	}
+	v, ok = m.Lookup("date")
+	assert.True(t, ok)
+	assert.Equal(t, "2019/11/28 03:50PM", v)
 
-	m.Del("date")
-	if v, ok := m.Get("date"); ok || v != nil {
-		t.Errorf("want got=false, v=nil, actual got=%v, v=%v", ok, v)
-		t.FailNow()
-	}
+	m.Remove("date")
+	v, ok = m.Lookup("date")
+	assert.False(t, ok)
+	assert.Equal(t, "", v)
 
-	m.Del("author")
-	if v, ok := m.Get("author"); ok || v != nil {
-		t.Errorf("want got=false, v=nil, actual got=%v, v=%v", ok, v)
-		t.FailNow()
-	}
+	m.Remove("author")
+	v, ok = m.Lookup("author")
+	assert.False(t, ok)
+	assert.Equal(t, "", v)
 
-	if size := m.Len(); size != 0 {
-		t.Errorf("want Len()=0,actual got=%d", size)
-		t.FailNow()
-	}
+	assert.Equal(t, 0, m.Len())
 }
 
-func Test_LinkedDict_Iter(t *testing.T) {
-	m := hashtable.NewLinkedDict()
+func Test_Map_Iter(t *testing.T) {
+	m := hashtable.New[string, int]()
 	for i := 0; i < 100000; i++ {
 		m.Set(fmt.Sprintf("key_%d", i), i)
 	}
 
-	cache := make(map[string]bool)
-	m.Iter(func(key string, v interface{}) {
-		cache[key] = true
+	cache := make(map[string]struct{})
+	m.Range(func(key string, v int) bool {
+		cache[key] = struct{}{}
+		return true
 	})
 
 	if size := len(cache); size != 100000 {
@@ -89,20 +84,20 @@ func Test_LinkedDict_Iter(t *testing.T) {
 	}
 }
 
-func Test_LinkedDict_Rehash(t *testing.T) {
+func Test_Map_Rehash(t *testing.T) {
 	// bydebug to test
-	m := hashtable.NewLinkedDict()
+	m := hashtable.New[string, int]()
 	for i := 0; i < 1024; i++ {
 		m.Set(fmt.Sprintf("key_%d", i), i)
 	}
 	t.Log("finished")
 }
-func Test_LinkedDict_Shrink(t *testing.T) {
-	m := hashtable.NewLinkedDict()
+func Test_Map_Shrink(t *testing.T) {
+	m := hashtable.New[string, int]()
 	for i := 0; i < 1024; i++ {
 		key := fmt.Sprintf("key_%d", i)
 		m.Set(key, i)
-		m.Get(key)
+		m.Lookup(key)
 	}
 
 	t.Log(m.Len())
@@ -111,16 +106,16 @@ func Test_LinkedDict_Shrink(t *testing.T) {
 		if i > 900 {
 			t.Log(m.Len())
 		}
-		m.Del(fmt.Sprintf("key_%d", i))
+		m.Remove(fmt.Sprintf("key_%d", i))
 	}
 }
 
-func Benchmark_LinkedDict(b *testing.B) {
+func Benchmark_Map(b *testing.B) {
 	/*
 		goos: darwin
 		goarch: amd64
 		pkg: github.com/yeqown/hashtable
-		Benchmark_LinkedDict-4   	 4458631	       268 ns/op	      23 B/op	       2 allocs/op
+		Benchmark_Map-4   	 4458631	       268 ns/op	      23 B/op	       2 allocs/op
 		PASS
 		ok  	github.com/yeqown/hashtable	1.769s
 		Success: Benchmarks passed.
@@ -131,7 +126,7 @@ func Benchmark_LinkedDict(b *testing.B) {
 		ok  bool
 	)
 	b.StopTimer()
-	m := hashtable.NewLinkedDict()
+	m := hashtable.New[string, int]()
 	for i := 0; i < 100000; i++ {
 		key = fmt.Sprintf("key_%d", i)
 		m.Set(key, i)
@@ -141,14 +136,16 @@ func Benchmark_LinkedDict(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		pos := rand.Intn(100000)
 		key = fmt.Sprintf("key_%d", pos)
-		if v, ok = m.Get(key); !ok || v.(int) != pos {
+		if v, ok = m.Lookup(key); !ok || v.(int) != pos {
 			b.Errorf("want got=true, v=%d, actual got=%v, v=%v", pos, ok, v)
 			b.FailNow()
 		}
 	}
 }
 
-func XBenchmark_goMap(b *testing.B) {
+func Benchmark_goMap(b *testing.B) {
+	//b.Skip()
+
 	/*
 		goos: darwin
 		goarch: amd64
@@ -159,7 +156,7 @@ func XBenchmark_goMap(b *testing.B) {
 		Success: Benchmarks passed.
 	*/
 	b.StopTimer()
-	m := make(map[string]interface{})
+	m := make(map[string]int)
 	for i := 0; i < 1024; i++ {
 		key := fmt.Sprintf("key_%d", i)
 		m[key] = i
@@ -168,7 +165,7 @@ func XBenchmark_goMap(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		pos := rand.Intn(1024)
-		if v, ok := m[fmt.Sprintf("key_%d", pos)]; !ok || v.(int) != pos {
+		if v, ok := m[fmt.Sprintf("key_%d", pos)]; !ok || v != pos {
 			b.Errorf("want got=true, v=%d, actual got=%v, v=%v", pos, ok, v)
 			b.FailNow()
 		}
@@ -180,7 +177,7 @@ func XBenchmark_goMap(b *testing.B) {
 // goos: darwin
 // goarch: amd64
 // pkg: github.com/yeqown/hashtable
-// Benchmark_LinkedDict-4   	 1000000	      1021 ns/op	      23 B/op	       2 allocs/op
+// Benchmark_Map-4   	 1000000	      1021 ns/op	      23 B/op	       2 allocs/op
 // PASS
 // ok  	github.com/yeqown/hashtable	1.373s
 
@@ -189,7 +186,7 @@ func XBenchmark_goMap(b *testing.B) {
 // goos: darwin
 // goarch: amd64
 // pkg: github.com/yeqown/hashtable
-// Benchmark_LinkedDict-4   	 5000000	       256 ns/op	      23 B/op	       2 allocs/op
+// Benchmark_Map-4   	 5000000	       256 ns/op	      23 B/op	       2 allocs/op
 // PASS
 // ok  	github.com/yeqown/hashtable	1.918s
 
@@ -198,7 +195,7 @@ func XBenchmark_goMap(b *testing.B) {
 // goos: windows
 // goarch: amd64
 // pkg: github.com/yeqown/hashtable
-// Benchmark_LinkedDict-4   	10000000	       244 ns/op	      23 B/op	       2 allocs/op
+// Benchmark_Map-4   	10000000	       244 ns/op	      23 B/op	       2 allocs/op
 // PASS
 // ok  	github.com/yeqown/hashtable	2.888s
 // Success: Benchmarks passed.
